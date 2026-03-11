@@ -35,6 +35,7 @@ export interface TableState {
 export class TexasHoldemEngine {
   state: TableState;
   private onStateChange?: () => void;
+  private onPotWin?: (winners: { seatIndex: number; amount: number }[]) => void;
 
   constructor(roomId: string, maxPlayers: number = 6) {
     this.state = {
@@ -56,6 +57,10 @@ export class TexasHoldemEngine {
 
   setOnStateChange(cb: () => void) {
     this.onStateChange = cb;
+  }
+
+  setOnWin(cb: (winners: { seatIndex: number; amount: number }[]) => void) {
+    this.onPotWin = cb;
   }
 
   log(msg: string) {
@@ -222,6 +227,7 @@ export class TexasHoldemEngine {
       if (inHand.length === 1) {
         inHand[0].chips += this.state.pot;
         this.log(`${inHand[0].name} wins ₹${this.state.pot} (uncontested)`);
+        this.onPotWin?.([{ seatIndex: inHand[0].seatIndex, amount: this.state.pot }]);
       }
       this.state.pot = 0;
       this.state.state = 'WAITING';
@@ -274,29 +280,84 @@ export class TexasHoldemEngine {
     this.state.state = 'SHOWDOWN';
     this.log(`*** SHOWDOWN ***`);
 
+    // 1. Evaluate hands for all players in the showdown
     const contenders = this.state.players.filter(p => p && (p.status === 'active' || p.status === 'all-in')) as PlayerState[];
-
-    let bestScore = -1;
-    let winners: PlayerState[] = [];
-
+    const handScores = new Map<string, { handProps: any; score: number }>();
+    
     contenders.forEach(p => {
       if (p.cards) {
         const hand = evaluateHand([...p.cards, ...this.state.communityCards]);
+        handScores.set(p.id, { handProps: hand, score: hand.score });
         this.log(`${p.name}: ${hand.description}`);
-        if (hand.score > bestScore) {
-          bestScore = hand.score;
-          winners = [p];
-        } else if (hand.score === bestScore) {
-          winners.push(p);
-        }
       }
     });
 
-    const winAmt = Math.floor(this.state.pot / winners.length);
-    winners.forEach(w => {
-      w.chips += winAmt;
-      this.log(`🏆 ${w.name} wins ₹${winAmt}!`);
+    // 2. Determine pot slices based on `totalInvested` of all players (including folded)
+    const allInvested = this.state.players.filter(p => p && p.totalInvested > 0).map(p => p!.totalInvested);
+    const uniqueLevels = Array.from(new Set(allInvested)).sort((a, b) => a - b);
+    
+    let previousLevel = 0;
+    const winEvents: { seatIndex: number; amount: number }[] = [];
+    const payouts = new Map<string, number>();
+
+    // 3. Distribute each slice
+    for (const level of uniqueLevels) {
+      const sliceDiff = level - previousLevel;
+      if (sliceDiff <= 0) continue;
+
+      let sliceAmount = 0;
+      const eligibleContenders: PlayerState[] = [];
+
+      // Collect chips for this slice and find eligible active players
+      this.state.players.forEach(p => {
+        if (p && p.totalInvested >= level) {
+          sliceAmount += sliceDiff;
+          if (p.status === 'active' || p.status === 'all-in') {
+            eligibleContenders.push(p);
+          }
+        }
+      });
+
+      if (sliceAmount > 0 && eligibleContenders.length > 0) {
+        // Find the best score among eligible contenders for this slice
+        let bestScore = -1;
+        let winnersForSlice: PlayerState[] = [];
+
+        eligibleContenders.forEach(p => {
+          const score = handScores.get(p.id)?.score || -1;
+          if (score > bestScore) {
+            bestScore = score;
+            winnersForSlice = [p];
+          } else if (score === bestScore) {
+            winnersForSlice.push(p);
+          }
+        });
+
+        // Split slice amount among winners
+        const winAmt = Math.floor(sliceAmount / winnersForSlice.length);
+        const remainder = sliceAmount % winnersForSlice.length;
+        
+        winnersForSlice.forEach((w, idx) => {
+          const extra = idx === 0 ? remainder : 0; // Give odd chip to the first winner
+          const totalWin = winAmt + extra;
+          payouts.set(w.id, (payouts.get(w.id) || 0) + totalWin);
+        });
+      }
+
+      previousLevel = level;
+    }
+
+    // 4. Apply payouts and log
+    payouts.forEach((amount, playerId) => {
+      const w = this.state.players.find(p => p?.id === playerId);
+      if (w) {
+        w.chips += amount;
+        this.log(`🏆 ${w.name} wins ₹${amount}!`);
+        winEvents.push({ seatIndex: w.seatIndex, amount });
+      }
     });
+
+    this.onPotWin?.(winEvents);
 
     this.state.pot = 0;
     this.onStateChange?.();

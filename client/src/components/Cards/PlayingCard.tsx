@@ -76,23 +76,31 @@ export const PlayingCard: React.FC<CardProps> = ({ card, width = 56, height = 80
     <div style={{
       width, height, borderRadius: width * 0.1,
       background: isFace
-        ? `linear-gradient(160deg, #fff 0%, ${s.fill} 100%)`
-        : '#ffffff',
-      border: `1.5px solid ${isFace ? s.color + '30' : '#d1d5db'}`,
-      boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+        ? `linear-gradient(160deg, #fafafa 0%, ${s.fill} 100%)`
+        : `linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)`,
+      border: `2px solid ${isFace ? s.color + '30' : '#cbd5e1'}`,
+      boxShadow: '0 6px 16px rgba(0,0,0,0.45), 0 2px 4px rgba(0,0,0,0.2)',
       position: 'relative', overflow: 'hidden',
       display: 'flex', flexDirection: 'column',
     }}>
+      {/* Inner border (premium card bleed) */}
+      <div style={{
+        position: 'absolute', inset: Math.max(2, width * 0.06),
+        borderRadius: width * 0.05,
+        border: `1px solid ${isFace ? s.color + '40' : '#e2e8f0'}`,
+        pointerEvents: 'none', zIndex: 1,
+      }} />
+
       {/* Top-left corner */}
-      <div style={{ padding: `${width * 0.06}px ${width * 0.1}px`, lineHeight: 1 }}>
-        <div style={{ color: s.color, fontWeight: 900, fontSize: fontSize, lineHeight: 1 }}>{card.value}</div>
-        <div style={{ color: s.color, fontSize: fontSize * 0.75, lineHeight: 1, marginTop: 1 }}>{s.sym}</div>
+      <div style={{ padding: `${width * 0.08}px ${width * 0.12}px`, lineHeight: 1, zIndex: 2 }}>
+        <div style={{ color: s.color, fontWeight: 900, fontSize: fontSize, lineHeight: 1, textShadow: '0 1px 1px rgba(0,0,0,0.1)' }}>{card.value}</div>
+        <div style={{ color: s.color, fontSize: fontSize * 0.8, lineHeight: 1, marginTop: 1, filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' }}>{s.sym}</div>
       </div>
 
       {/* Center area */}
       <div style={{
         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        position: 'relative',
+        position: 'relative', zIndex: 2,
       }}>
         {isFace ? (
           /* Face card — large crown/knight icon with decorative border */
@@ -101,27 +109,27 @@ export const PlayingCard: React.FC<CardProps> = ({ card, width = 56, height = 80
           }}>
             <span style={{
               fontSize: width * 0.45, color: s.color, lineHeight: 1,
-              textShadow: `0 2px 4px ${s.color}22`,
-              filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.15))',
+              textShadow: `0 2px 4px ${s.color}44`,
+              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.25))',
             }}>{faceIcon}</span>
             <span style={{
-              fontSize: 6, fontWeight: 800, letterSpacing: 1.5, color: s.color,
-              textTransform: 'uppercase', opacity: 0.5, marginTop: 2,
+              fontSize: width * 0.1, fontWeight: 800, letterSpacing: 1.5, color: s.color,
+              textTransform: 'uppercase', opacity: 0.6, marginTop: 2,
             }}>{FACE_LABEL[card.value]}</span>
           </div>
         ) : isAce ? (
           /* Ace — large centered suit */
           <span style={{
-            fontSize: width * 0.55, color: s.color, lineHeight: 1,
-            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))',
+            fontSize: width * 0.6, color: s.color, lineHeight: 1,
+            filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.3))',
           }}>{s.sym}</span>
         ) : (
           /* Number cards — suit pattern */
           <div style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center',
-            gap: 2,
+            gap: 2, filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.15))',
           }}>
-            <span style={{ fontSize: width * 0.4, color: s.color, lineHeight: 1 }}>{s.sym}</span>
+            <span style={{ fontSize: width * 0.45, color: s.color, lineHeight: 1 }}>{s.sym}</span>
           </div>
         )}
 
@@ -129,25 +137,25 @@ export const PlayingCard: React.FC<CardProps> = ({ card, width = 56, height = 80
         {isFace && (
           <div style={{
             position: 'absolute', left: '15%', right: '15%', top: '20%',
-            height: 1, background: `linear-gradient(90deg, transparent, ${s.color}20, transparent)`,
+            height: 1.5, background: `linear-gradient(90deg, transparent, ${s.color}30, transparent)`,
           }} />
         )}
       </div>
 
       {/* Bottom-right corner (inverted) */}
       <div style={{
-        padding: `${width * 0.06}px ${width * 0.1}px`, lineHeight: 1,
-        alignSelf: 'flex-end', transform: 'rotate(180deg)',
+        padding: `${width * 0.08}px ${width * 0.12}px`, lineHeight: 1,
+        alignSelf: 'flex-end', transform: 'rotate(180deg)', zIndex: 2,
       }}>
-        <div style={{ color: s.color, fontWeight: 900, fontSize: fontSize, lineHeight: 1 }}>{card.value}</div>
-        <div style={{ color: s.color, fontSize: fontSize * 0.75, lineHeight: 1, marginTop: 1 }}>{s.sym}</div>
+        <div style={{ color: s.color, fontWeight: 900, fontSize: fontSize, lineHeight: 1, textShadow: '0 1px 1px rgba(0,0,0,0.1)' }}>{card.value}</div>
+        <div style={{ color: s.color, fontSize: fontSize * 0.8, lineHeight: 1, marginTop: 1, filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' }}>{s.sym}</div>
       </div>
 
       {/* Subtle shine overlay */}
       <div style={{
         position: 'absolute', inset: 0, borderRadius: 'inherit',
-        background: 'linear-gradient(135deg, rgba(255,255,255,0.3) 0%, transparent 40%)',
-        pointerEvents: 'none',
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.4) 0%, transparent 50%)',
+        pointerEvents: 'none', zIndex: 3,
       }} />
     </div>
   );

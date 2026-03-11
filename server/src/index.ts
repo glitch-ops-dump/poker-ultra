@@ -140,6 +140,9 @@ io.on('connection', (socket: Socket) => {
 
     // Wire state change callback for async events (showdown, next hand)
     engine.setOnStateChange(() => broadcastState(roomId));
+    engine.setOnWin((winners) => {
+      io.to(roomId).emit('sc_pot_win', winners);
+    });
 
     // Fill bot seats — leave seat 0 for the human, fill the rest with bots
     const botCount = maxPlayers - 1;

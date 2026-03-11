@@ -3,6 +3,7 @@ import { useAppStore } from '../../store/gameStore';
 import { GameTable, type Player } from './GameTable';
 import { ActionControls } from './ActionControls';
 import { ChatPanel } from '../Chat/ChatPanel';
+import { SettingsMenu } from '../Menu/SettingsMenu';
 import { useThrowables, type ThrowableItem } from '../Animations/Throwables';
 import { evaluateHand, getHandColor } from '../../utils/handEvaluator';
 import { playSound } from '../../utils/sounds';
@@ -12,11 +13,16 @@ const COLORS = ['#3b82f6','#10b981','#8b5cf6','#ec4899','#f59e0b','#06b6d4'];
 export const TableView: React.FC = () => {
   const {
     roomCode, leaveRoom, tableState, seatIndex,
-    sendAction, sendThrow, balance
+    sendAction, sendThrow, balance, potWinners
   } = useAppStore();
 
   const { throwItem, ThrowableLayer } = useThrowables();
   const [throwTarget, setThrowTarget] = useState<number | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+
+  // Auto-action states
+  const [autoFold, setAutoFold] = useState(false);
+  const [autoCheck, setAutoCheck] = useState(false);
 
   const activeChatPlayers = useMemo(() => {
     if (!tableState) return [];
@@ -68,16 +74,34 @@ export const TableView: React.FC = () => {
   const maxRaise = hero ? hero.chips + hero.currentBet : 0;
   const minRaise = tableState.currentBet + tableState.minRaise;
 
-  const handleThrowAction = (type: ThrowableItem['type'], _fromSeat: number, toSeat: number) => {
-    sendThrow(type, toSeat);
-    setThrowTarget(null);
-  };
-
   const handleFold = () => { if (myTurn) { playSound('fold'); sendAction('fold'); } };
   const handleCheck = () => { if (myTurn) { playSound('check'); sendAction('check'); } };
   const handleCall = () => { if (myTurn) { playSound('chips'); sendAction('call'); } };
   const handleRaise = (amount: number) => { if (myTurn) { playSound('chips'); sendAction('raise', amount); } };
   const handleAllIn = () => { if (myTurn) { playSound('allin'); sendAction('allin'); } };
+
+  // Trigger auto-actions when it becomes my turn
+  useEffect(() => {
+    if (myTurn && hero) {
+      if (autoFold) {
+        handleFold();
+        setAutoFold(false);
+      } else if (autoCheck && canCheck) {
+        handleCheck();
+        setAutoCheck(false);
+      } else if (autoCheck && !canCheck) {
+        // Auto check is checked, but we can't check (someone bet). We should clear it so user can decide.
+        setAutoCheck(false);
+      }
+    }
+  }, [myTurn, hero, autoFold, autoCheck, canCheck]);
+
+  const handleThrowAction = (type: ThrowableItem['type'], _fromSeat: number, toSeat: number) => {
+    sendThrow(type, toSeat);
+    setThrowTarget(null);
+  };
+
+
 
   return (
     <div style={{
@@ -104,7 +128,10 @@ export const TableView: React.FC = () => {
           padding: '10px 20px', borderBottom: '1px solid rgba(255,255,255,0.04)',
           flexShrink: 0,
         }}>
-          <button onClick={leaveRoom} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: 18, padding: '4px 8px' }}>← Back</button>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <button onClick={leaveRoom} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: 18, padding: '4px 8px' }}>← Back</button>
+            <button onClick={() => setShowSettings(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: 20 }}>⚙️</button>
+          </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12, color: '#94a3b8' }}>
             <span>Table: <strong style={{ color: '#fff', textTransform: 'uppercase' }}>{roomCode}</strong></span>
@@ -139,6 +166,7 @@ export const TableView: React.FC = () => {
               <GameTable
                 players={alignPlayersHeroBottom(tableState.players, seatIndex)}
                 pot={tableState.pot}
+                potWinners={potWinners}
                 communityCards={tableState.communityCards}
                 handDescription={handDesc}
                 handColor={handColor}
@@ -167,12 +195,27 @@ export const TableView: React.FC = () => {
               onRaise={handleRaise}
               onAllIn={handleAllIn}
             />
+          ) : hero && tableState.state === 'ACTIVE' ? (
+            <div style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 13, color: '#444', fontWeight: 600 }}>
+                Waiting for {tableState.players[tableState.currentTurnIndex]?.name || 'opponent'}…
+              </span>
+              <div style={{ display: 'flex', gap: 16 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: autoFold ? '#ef4444' : '#64748b', cursor: 'pointer', transition: 'color 0.2s' }}>
+                  <input type="checkbox" checked={autoFold} onChange={e => { setAutoFold(e.target.checked); setAutoCheck(false); }} />
+                  Auto Fold
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: autoCheck ? '#3b82f6' : '#64748b', cursor: 'pointer', transition: 'color 0.2s' }}>
+                  <input type="checkbox" checked={autoCheck} onChange={e => { setAutoCheck(e.target.checked); setAutoFold(false); }} />
+                  Auto Check
+                </label>
+              </div>
+            </div>
           ) : (
             <div style={{ padding: '16px 0', textAlign: 'center' }}>
               <span style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>
                 {tableState.state === 'WAITING' ? '⏳ Next hand starting soon…' :
-                 tableState.state === 'SHOWDOWN' ? '🏆 Showdown!' :
-                 `Waiting for ${tableState.players[tableState.currentTurnIndex]?.name || 'opponent'}…`}
+                 tableState.state === 'SHOWDOWN' ? '🏆 Showdown!' : 'Please wait…'}
               </span>
             </div>
           )}
@@ -221,6 +264,8 @@ export const TableView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {showSettings && <SettingsMenu onClose={() => setShowSettings(false)} />}
     </div>
   );
 };
@@ -228,6 +273,15 @@ export const TableView: React.FC = () => {
 /** Rotate players so hero is always at visual index 3 (bottom center) */
 function alignPlayersHeroBottom(serverPlayers: (Player | null)[], heroSeat: number): (Player | null)[] {
   const result = new Array(6).fill(null);
+  
+  if (serverPlayers.length === 2) {
+    // 2-player mode: Hero is at 3, opponent is directly opposite at 0
+    result[3] = serverPlayers[heroSeat];
+    const oppSeat = heroSeat === 0 ? 1 : 0;
+    if (serverPlayers[oppSeat]) result[0] = serverPlayers[oppSeat];
+    return result;
+  }
+
   const offset = (3 - heroSeat + 6) % 6;
   for (let i = 0; i < serverPlayers.length; i++) {
     if (serverPlayers[i]) {

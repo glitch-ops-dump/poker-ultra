@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { type Card } from '../Cards/PlayingCard';
-import { AnimatedCard, usePotPulse } from '../Cards/AnimatedCard';
+import { AnimatedCard, usePotPulse, FlyingChip } from '../Cards/AnimatedCard';
 import { type ThrowableItem } from '../Animations/Throwables';
 
 /* ═══ Types ═══ */
@@ -131,7 +131,12 @@ const PlayerPod: React.FC<{
 
       {/* Cards */}
       {player.cards && (
-        <div style={{ display: 'flex', gap: 3, marginTop: 3 }}>
+        <div style={{ 
+          display: 'flex', gap: 3, marginTop: 3,
+          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+          transform: folded ? 'translateY(10px) scale(0.9)' : 'translateY(0) scale(1)',
+          filter: folded ? 'grayscale(100%) brightness(0.6)' : 'none',
+        }}>
           {player.isHero ? (
             <>
               <AnimatedCard 
@@ -178,13 +183,14 @@ interface TableProps {
   players: (Player | null)[];
   communityCards: Card[];
   pot: number;
+  potWinners?: { seatIndex: number; amount: number }[] | null;
   handDescription?: string;
   handColor?: string;
   onThrowAt?: (seatIndex: number) => void;
 }
 
 export const GameTable: React.FC<TableProps> = ({
-  players, communityCards, pot, handDescription, handColor, onThrowAt,
+  players, communityCards, pot, potWinners, handDescription, handColor, onThrowAt,
 }) => {
   const potRef = usePotPulse(pot);
 
@@ -249,6 +255,26 @@ export const GameTable: React.FC<TableProps> = ({
               </span>
             </div>
           </div>
+
+          {/* Pot Win Flying Chips */}
+          {potWinners && potWinners.map((w, iter) => {
+            const visualIdx = players.findIndex(p => p?.seatIndex === w.seatIndex);
+            if (visualIdx === -1) return null;
+            
+            const WIN_TARGET: Record<number, { x: number, y: number }> = {
+              0: { x: 0, y: -180 }, 1: { x: 320, y: -100 }, 2: { x: 320, y: 150 },
+              3: { x: 0, y: 220 }, 4: { x: -320, y: 150 }, 5: { x: -320, y: -100 },
+            };
+            const target = WIN_TARGET[visualIdx] || { x: 0, y: 0 };
+            
+            return (
+              <div key={`win-${iter}`} style={{ position: 'absolute', top: '26%', left: '50%', zIndex: 50 }}>
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <FlyingChip key={i} delay={i * 0.1} targetX={target.x} targetY={target.y} color="#4ade80" />
+                ))}
+              </div>
+            );
+          })}
 
           {/* Community cards */}
           <div style={{ position: 'absolute', top: '42%', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 8, zIndex: 5 }}>

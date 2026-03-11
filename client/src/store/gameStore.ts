@@ -41,6 +41,9 @@ interface AppState {
   isConnected: boolean;
   socket: Socket | null;
   activeRooms: { id: string; name: string; players: number; maxPlayers: number; blinds: string; state: string }[];
+  isSoundEnabled: boolean;
+  isMusicEnabled: boolean;
+  potWinners: { seatIndex: number; amount: number }[] | null;
 
   setDisplayName: (name: string) => void;
   setBalance: (amt: number) => void;
@@ -51,6 +54,8 @@ interface AppState {
   sendChat: (msg: string) => void;
   sendThrow: (type: string, toSeat: number) => void;
   fetchRooms: () => void;
+  toggleSound: () => void;
+  toggleMusic: () => void;
 }
 
 // In production (served from Express), Socket.IO connects to same origin.
@@ -66,6 +71,14 @@ export const useAppStore = create<AppState>((set, get) => {
   socket.on('connect', () => set({ isConnected: true }));
   socket.on('disconnect', () => set({ isConnected: false, tableState: null, roomCode: null }));
   
+  socket.on('sc_pot_win', (winners: { seatIndex: number; amount: number }[]) => {
+    set({ potWinners: winners });
+    setTimeout(() => {
+      // Clear after animation finishes
+      if (get().potWinners === winners) set({ potWinners: null });
+    }, 3000);
+  });
+
   socket.on('table_state', (state: any) => {
     const mySeat = get().seatIndex;
     
@@ -108,6 +121,9 @@ export const useAppStore = create<AppState>((set, get) => {
     isConnected: false,
     socket,
     activeRooms: [],
+    isSoundEnabled: localStorage.getItem('poker_sound') !== 'false',
+    isMusicEnabled: localStorage.getItem('poker_music') !== 'false',
+    potWinners: null,
 
     setDisplayName: (name) => {
       localStorage.setItem('poker_name', name);
@@ -174,6 +190,18 @@ export const useAppStore = create<AppState>((set, get) => {
       } catch {
         set({ activeRooms: [] });
       }
+    },
+
+    toggleSound: () => {
+      const newVal = !get().isSoundEnabled;
+      localStorage.setItem('poker_sound', newVal.toString());
+      set({ isSoundEnabled: newVal });
+    },
+
+    toggleMusic: () => {
+      const newVal = !get().isMusicEnabled;
+      localStorage.setItem('poker_music', newVal.toString());
+      set({ isMusicEnabled: newVal });
     },
   };
 });
