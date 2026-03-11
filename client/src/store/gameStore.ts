@@ -51,7 +51,7 @@ interface AppState {
   sendThrow: (type: string, toSeat: number) => void;
 }
 
-const SERVER_URL = 'http://localhost:3001';
+const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
 
 // We initialize socket separately so we don't recreate it on every render
 const socket = io(SERVER_URL, { autoConnect: false });
