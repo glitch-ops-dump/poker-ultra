@@ -20,7 +20,8 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3001;
 
-app.get('/', (_req, res) => res.json({ status: 'ok', activeRooms: roomManager.getAvailableRooms() }));
+// REST API for room listing (used by lobby)
+app.get('/api/rooms', (_req, res) => res.json(roomManager.getAvailableRooms()));
 
 /* ═══ Broadcast sanitized state to all sockets in a room ═══ */
 function broadcastState(roomId: string) {
@@ -133,19 +134,20 @@ const BOT_NAMES = ['Astro', 'BluffKing', 'ChipLord', 'DealerD', 'Eva'];
 io.on('connection', (socket: Socket) => {
   console.log(`[+] Connected: ${socket.id}`);
 
-  socket.on('create_room', (callback) => {
-    const roomId = roomManager.createRoom();
+  socket.on('create_room', ({ maxPlayers = 6 }: { maxPlayers?: 2 | 4 | 6 }, callback) => {
+    const roomId = roomManager.createRoom(maxPlayers);
     const engine = roomManager.getRoom(roomId)!;
 
     // Wire state change callback for async events (showdown, next hand)
     engine.setOnStateChange(() => broadcastState(roomId));
 
-    // Fill 5 bot seats (seats 1-5), leave seat 0 for the player
-    for (let i = 1; i <= 5; i++) {
+    // Fill bot seats — leave seat 0 for the human, fill the rest with bots
+    const botCount = maxPlayers - 1;
+    for (let i = 1; i <= botCount && i < BOT_NAMES.length + 1; i++) {
       engine.addPlayer(`bot_${roomId}_${i}`, BOT_NAMES[i - 1], 50000, i, true);
     }
 
-    console.log(`[ROOM] Created ${roomId} with 5 bots`);
+    console.log(`[ROOM] Created ${roomId} (${maxPlayers}-player) with ${botCount} bots`);
     callback({ roomId });
   });
 

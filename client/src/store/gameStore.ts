@@ -40,15 +40,17 @@ interface AppState {
   tableState: TableState | null;
   isConnected: boolean;
   socket: Socket | null;
+  activeRooms: { id: string; name: string; players: number; maxPlayers: number; blinds: string; state: string }[];
 
   setDisplayName: (name: string) => void;
   setBalance: (amt: number) => void;
-  createRoom: () => void;
+  createRoom: (maxPlayers?: 2 | 4 | 6) => void;
   joinRoom: (code: string) => void;
   leaveRoom: () => void;
   sendAction: (action: string, amount?: number) => void;
   sendChat: (msg: string) => void;
   sendThrow: (type: string, toSeat: number) => void;
+  fetchRooms: () => void;
 }
 
 // In production (served from Express), Socket.IO connects to same origin.
@@ -105,6 +107,7 @@ export const useAppStore = create<AppState>((set, get) => {
     tableState: null,
     isConnected: false,
     socket,
+    activeRooms: [],
 
     setDisplayName: (name) => {
       localStorage.setItem('poker_name', name);
@@ -116,9 +119,9 @@ export const useAppStore = create<AppState>((set, get) => {
       set({ balance: amt });
     },
 
-    createRoom: () => {
+    createRoom: (maxPlayers = 6) => {
       if (!socket.connected) socket.connect();
-      socket.emit('create_room', (res: { roomId: string }) => {
+      socket.emit('create_room', { maxPlayers }, (res: { roomId: string }) => {
         if (res.roomId) {
           get().joinRoom(res.roomId);
         }
@@ -160,6 +163,17 @@ export const useAppStore = create<AppState>((set, get) => {
 
     sendThrow: (type, toSeat) => {
       socket.emit('throw_item', { type, toSeat });
-    }
+    },
+
+    fetchRooms: async () => {
+      try {
+        const base = import.meta.env.DEV ? 'http://localhost:3001' : '';
+        const res = await fetch(`${base}/api/rooms`);
+        const rooms = await res.json();
+        set({ activeRooms: rooms });
+      } catch {
+        set({ activeRooms: [] });
+      }
+    },
   };
 });
