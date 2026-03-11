@@ -2,6 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import cors from 'cors';
+import path from 'path';
 import dotenv from 'dotenv';
 import { roomManager } from './roomManager';
 import { TexasHoldemEngine } from './engine';
@@ -255,6 +256,13 @@ io.on('connection', (socket: Socket) => {
       broadcastState(roomId);
     }
   });
+});
+
+// ═══ Serve frontend static files (production) ═══
+const clientDist = path.join(__dirname, '../../client/dist');
+app.use(express.static(clientDist));
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(clientDist, 'index.html'));
 });
 
 server.listen(PORT, () => console.log(`[🚀] Poker Ultra Server on http://localhost:${PORT}`));

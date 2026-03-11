@@ -51,9 +51,11 @@ interface AppState {
   sendThrow: (type: string, toSeat: number) => void;
 }
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
+// In production (served from Express), Socket.IO connects to same origin.
+// In dev, connects to the local server on port 3001.
+const SERVER_URL = import.meta.env.VITE_SERVER_URL || 
+  (import.meta.env.DEV ? 'http://localhost:3001' : window.location.origin);
 
-// We initialize socket separately so we don't recreate it on every render
 const socket = io(SERVER_URL, { autoConnect: false });
 
 export const useAppStore = create<AppState>((set, get) => {
