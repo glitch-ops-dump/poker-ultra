@@ -1,5 +1,6 @@
-import React from 'react';
-import { PlayingCard, type Card } from '../Cards/PlayingCard';
+import React, { useRef, useEffect } from 'react';
+import { type Card } from '../Cards/PlayingCard';
+import { AnimatedCard, usePotPulse } from '../Cards/AnimatedCard';
 import { type ThrowableItem } from '../Animations/Throwables';
 
 /* ═══ Types ═══ */
@@ -34,14 +35,24 @@ const SEAT_POS: Record<number, React.CSSProperties> = {
 const PlayerPod: React.FC<{
   player: Player;
   onThrowAt?: (seatIndex: number) => void;
+  dealerPos?: { x: number; y: number };
   throwHandler?: {
     onThrow: (type: ThrowableItem['type'], from: number, to: number) => void;
   };
-}> = ({ player, onThrowAt }) => {
+}> = ({ player, onThrowAt, dealerPos }) => {
   const folded = player.status === 'fold';
   const thinking = player.status === 'thinking';
   const bg = AVATAR_BG[player.seatIndex % AVATAR_BG.length];
   const chipStr = player.chips >= 1000 ? `${Math.round(player.chips / 1000)}k` : `${player.chips}`;
+
+  // Track if these cards were just dealt
+  const prevCards = useRef<string | null>(null);
+  const cardKey = player.cards ? player.cards.map(c => c.value + c.suit).join() : null;
+  const isNewDeal = cardKey !== null && cardKey !== prevCards.current;
+
+  useEffect(() => {
+    prevCards.current = cardKey;
+  }, [cardKey]);
 
   return (
     <div style={{ opacity: folded ? 0.4 : 1, transition: 'opacity 0.3s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
@@ -123,13 +134,37 @@ const PlayerPod: React.FC<{
         <div style={{ display: 'flex', gap: 3, marginTop: 3 }}>
           {player.isHero ? (
             <>
-              <PlayingCard card={player.cards[0]} width={40} height={56} />
-              <PlayingCard card={player.cards[1]} width={40} height={56} />
+              <AnimatedCard 
+                card={player.cards[0]} 
+                width={40} height={56} 
+                dealFrom={isNewDeal ? dealerPos : undefined}
+                dealDelay={0.1}
+                flipDelay={0.4}
+              />
+              <AnimatedCard 
+                card={player.cards[1]} 
+                width={40} height={56} 
+                dealFrom={isNewDeal ? dealerPos : undefined}
+                dealDelay={0.25}
+                flipDelay={0.4}
+              />
             </>
           ) : (
             <>
-              <PlayingCard card={{ ...player.cards[0], faceDown: true }} width={30} height={42} />
-              <PlayingCard card={{ ...player.cards[1], faceDown: true }} width={30} height={42} />
+              <AnimatedCard 
+                card={{ ...player.cards[0], faceDown: true }} 
+                width={30} height={42} 
+                faceDown={true}
+                dealFrom={isNewDeal ? dealerPos : undefined}
+                dealDelay={player.seatIndex * 0.1}
+              />
+              <AnimatedCard 
+                card={{ ...player.cards[1], faceDown: true }} 
+                width={30} height={42} 
+                faceDown={true}
+                dealFrom={isNewDeal ? dealerPos : undefined}
+                dealDelay={player.seatIndex * 0.1 + 0.05}
+              />
             </>
           )}
         </div>
@@ -151,6 +186,21 @@ interface TableProps {
 export const GameTable: React.FC<TableProps> = ({
   players, communityCards, pot, handDescription, handColor, onThrowAt,
 }) => {
+  const potRef = usePotPulse(pot);
+
+  // Determine dealer position for card dealing
+  const dealerSeat = players.find(p => p?.isDealer);
+  const dealerPos = dealerSeat ? {
+    // Relative to center of table (roughly 0,0)
+    x: dealerSeat.seatIndex === 0 || dealerSeat.seatIndex === 3 ? 0 : (dealerSeat.seatIndex < 3 ? 400 : -400),
+    y: dealerSeat.seatIndex < 3 ? -200 : 200,
+  } : undefined;
+
+  // Track community card deal status
+  const prevCommCount = useRef(communityCards.length);
+  useEffect(() => {
+    prevCommCount.current = communityCards.length;
+  }, [communityCards.length]);
   return (
     <div style={{ position: 'relative', width: '70vw', maxWidth: 800, aspectRatio: '800 / 440' }}>
       {/* ── Outer rail ── */}
@@ -189,7 +239,7 @@ export const GameTable: React.FC<TableProps> = ({
 
           {/* POT */}
           <div style={{ position: 'absolute', top: '26%', left: '50%', transform: 'translateX(-50%)', zIndex: 5 }}>
-            <div style={{
+            <div ref={potRef} style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)',
               padding: '5px 18px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.1)',
@@ -202,7 +252,16 @@ export const GameTable: React.FC<TableProps> = ({
 
           {/* Community cards */}
           <div style={{ position: 'absolute', top: '42%', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 8, zIndex: 5 }}>
-            {communityCards.map((c, i) => <PlayingCard key={i} card={c} width={52} height={74} />)}
+            {communityCards.map((c, i) => (
+              <AnimatedCard 
+                key={`${c.value}${c.suit}`} 
+                card={c} 
+                width={52} height={74} 
+                dealFrom={i >= prevCommCount.current ? dealerPos : undefined}
+                dealDelay={(i - prevCommCount.current) * 0.15}
+                flipDelay={0.4}
+              />
+            ))}
             {Array.from({ length: 5 - communityCards.length }).map((_, i) => (
               <div key={`e${i}`} style={{ width: 52, height: 74, borderRadius: 6, border: '2px dashed rgba(255,255,255,0.08)', background: 'rgba(0,0,0,0.08)' }} />
             ))}
