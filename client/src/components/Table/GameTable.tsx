@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { PlayingCard, type Card } from '../Cards/PlayingCard';
-import { ThrowPicker, type ThrowableItem } from '../Animations/Throwables';
+import { type ThrowableItem } from '../Animations/Throwables';
 
 /* ═══ Types ═══ */
 export type { Card } from '../Cards/PlayingCard';
