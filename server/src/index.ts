@@ -259,7 +259,11 @@ io.on('connection', (socket: Socket) => {
 });
 
 // ═══ Serve frontend static files (production) ═══
-const clientDist = path.join(__dirname, '../../client/dist');
+// Try Docker layout first (../client/dist), fallback to dev layout (../../client/dist)
+const clientDistDocker = path.join(__dirname, '../client/dist');
+const clientDistDev = path.join(__dirname, '../../client/dist');
+const fs = require('fs');
+const clientDist = fs.existsSync(clientDistDocker) ? clientDistDocker : clientDistDev;
 app.use(express.static(clientDist));
 app.get('/{*path}', (_req, res) => {
   res.sendFile(path.join(clientDist, 'index.html'));
