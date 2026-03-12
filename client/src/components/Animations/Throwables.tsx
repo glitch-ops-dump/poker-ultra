@@ -108,6 +108,16 @@ const ThrowableAnimation: React.FC<{
 };
 
 /* ═══ Throwable Manager ═══ */
+
+// ThrowableLayer must be a standalone component exported at module level — never defined inside a hook.
+export const ThrowableLayer: React.FC<{ items: ThrowableItem[]; onRemove: (id: string) => void }> = ({ items, onRemove }) => (
+  <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 100 }}>
+    {items.map(item => (
+      <ThrowableAnimation key={item.id} item={item} onComplete={onRemove} />
+    ))}
+  </div>
+);
+
 export const useThrowables = () => {
   const [items, setItems] = useState<ThrowableItem[]>([]);
 
@@ -120,16 +130,9 @@ export const useThrowables = () => {
     setItems(prev => prev.filter(i => i.id !== id));
   }, []);
 
-  const ThrowableLayer: React.FC = () => (
-    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 100 }}>
-      {items.map(item => (
-        <ThrowableAnimation key={item.id} item={item} onComplete={removeItem} />
-      ))}
-    </div>
-  );
-
-  return { throwItem, ThrowableLayer };
+  return { throwItem, items, removeItem };
 };
+
 
 /* ═══ Throwable Picker Menu ═══ */
 export const ThrowPicker: React.FC<{

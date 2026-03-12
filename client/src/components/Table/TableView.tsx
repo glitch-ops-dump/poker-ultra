@@ -4,7 +4,7 @@ import { GameTable, type Player } from './GameTable';
 import { ActionControls } from './ActionControls';
 import { ChatPanel } from '../Chat/ChatPanel';
 import { SettingsMenu } from '../Menu/SettingsMenu';
-import { useThrowables, type ThrowableItem } from '../Animations/Throwables';
+import { useThrowables, ThrowableLayer, type ThrowableItem } from '../Animations/Throwables';
 import { evaluateHand, getHandColor } from '../../utils/handEvaluator';
 import { playSound } from '../../utils/sounds';
 
@@ -16,7 +16,7 @@ export const TableView: React.FC = () => {
     sendAction, sendThrow, balance, potWinners
   } = useAppStore();
 
-  const { throwItem, ThrowableLayer } = useThrowables();
+  const { throwItem, items: throwableItems, removeItem: removeThrowable } = useThrowables();
   const [throwTarget, setThrowTarget] = useState<number | null>(null);
   const [showSettings, setShowSettings] = useState(false);
 
@@ -43,36 +43,16 @@ export const TableView: React.FC = () => {
     return () => { socket.off('throw_item', handleThrow); };
   }, [throwItem]);
 
-  if (!tableState || seatIndex === null) {
-    return (
-      <div style={{ width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0f18' }}>
-        <span style={{ color: '#4ade80', fontSize: 22, fontWeight: 900, fontStyle: 'italic' }}>Connecting to table…</span>
-      </div>
-    );
-  }
+  // Depend on safe variants of tableState data so we can declare hooks before the early return
+  const hero = (tableState && seatIndex !== null) ? tableState.players[seatIndex] : null;
+  const myTurn = tableState?.currentTurnIndex === seatIndex && tableState?.state !== 'WAITING' && tableState?.state !== 'SHOWDOWN';
+  const currentBet = tableState?.currentBet || 0;
+  const minRaiseState = tableState?.minRaise || 0;
 
-  const hero = tableState.players[seatIndex];
-
-  // Hand evaluation
-  let handDesc = '';
-  let handColor = '#475569';
-  if (hero?.cards && hero.cards.length === 2 && !(hero.cards[0] as any).faceDown) {
-    const res = evaluateHand(hero.cards, tableState.communityCards);
-    handDesc = res.description;
-    handColor = getHandColor(res.score);
-  } else if (tableState.state === 'SHOWDOWN') {
-    handDesc = 'Showdown';
-    handColor = '#fbbf24';
-  } else if (tableState.state === 'WAITING') {
-    handDesc = 'Waiting for next hand…';
-  }
-
-  // Turn logic
-  const myTurn = tableState.currentTurnIndex === seatIndex && tableState.state !== 'WAITING' && tableState.state !== 'SHOWDOWN';
-  const canCheck = hero ? hero.currentBet >= tableState.currentBet : false;
-  const callAmount = hero ? Math.min(tableState.currentBet - hero.currentBet, hero.chips) : 0;
+  const canCheck = hero ? hero.currentBet >= currentBet : false;
+  const callAmount = hero ? Math.min(currentBet - hero.currentBet, hero.chips) : 0;
   const maxRaise = hero ? hero.chips + hero.currentBet : 0;
-  const minRaise = tableState.currentBet + tableState.minRaise;
+  const minRaise = currentBet + minRaiseState;
 
   const handleFold = () => { if (myTurn) { playSound('fold'); sendAction('fold'); } };
   const handleCheck = () => { if (myTurn) { playSound('check'); sendAction('check'); } };
@@ -95,6 +75,28 @@ export const TableView: React.FC = () => {
       }
     }
   }, [myTurn, hero, autoFold, autoCheck, canCheck]);
+
+  if (!tableState || seatIndex === null) {
+    return (
+      <div style={{ width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0f18' }}>
+        <span style={{ color: '#4ade80', fontSize: 22, fontWeight: 900, fontStyle: 'italic' }}>Connecting to table…</span>
+      </div>
+    );
+  }
+
+  // Hand evaluation string
+  let handDesc = '';
+  let handColor = '#475569';
+  if (hero?.cards && hero.cards.length === 2 && !(hero.cards[0] as any).faceDown) {
+    const res = evaluateHand(hero.cards, tableState.communityCards);
+    handDesc = res.description;
+    handColor = getHandColor(res.score);
+  } else if (tableState.state === 'SHOWDOWN') {
+    handDesc = 'Showdown';
+    handColor = '#fbbf24';
+  } else if (tableState.state === 'WAITING') {
+    handDesc = 'Waiting for next hand…';
+  }
 
   const handleThrowAction = (type: ThrowableItem['type'], _fromSeat: number, toSeat: number) => {
     sendThrow(type, toSeat);
@@ -173,7 +175,7 @@ export const TableView: React.FC = () => {
                 onThrowAt={(targetSeatIndex) => setThrowTarget(targetSeatIndex)}
               />
             </div>
-            <ThrowableLayer />
+            <ThrowableLayer items={throwableItems} onRemove={removeThrowable} />
           </div>
         </div>
 
