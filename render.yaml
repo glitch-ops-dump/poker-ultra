@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: poker-ultra
+    plan: standard
+    env: node
+    region: oregon
+    buildCommand: cd client && npm install && npm run build
+    startCommand: npm install -g serve && serve -s client/dist -l 3000
+    envVars:
+      - key: NODE_ENV
+        value: production
+    routes:
+      - path: /*
+        destination: /index.html
+    domains:
+      - poker-ultra.onrender.com

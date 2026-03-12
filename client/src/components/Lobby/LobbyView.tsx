@@ -37,11 +37,10 @@ export const LobbyView: React.FC = () => {
         borderBottom: '1px solid rgba(255,255,255,0.04)',
       }}>
         <div style={{ display: 'flex', gap: 24 }}>
-          {['Lobby', 'Cash Games', 'Tournaments'].map((t, i) => (
-            <span key={t} style={{ fontSize: 13, fontWeight: 700, cursor: 'pointer', color: i === 0 ? '#4ade80' : '#64748b', borderBottom: i === 0 ? '2px solid #4ade80' : 'none', paddingBottom: 4 }}>{t}</span>
-          ))}
+          <span style={{ fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#4ade80', borderBottom: '2px solid #4ade80', paddingBottom: 4 }}>Lobby</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#94a3b8' }}>
+          <span style={{ fontSize: 16 }}>💰</span>
           <span>Balance</span>
           <span style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: 16, color: '#fff' }}>₹{balance.toLocaleString()}</span>
         </div>
@@ -64,8 +63,8 @@ export const LobbyView: React.FC = () => {
 
         {/* Name + Balance */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
-          <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <span style={{ fontSize: 18 }}>👤</span>
+          <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'rgba(255,193,7,0.1)', border: '1px solid rgba(255,193,7,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <span style={{ fontSize: 22 }}>💰</span>
           </div>
           <div style={{ flex: 1 }}>
             <label style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1, textTransform: 'uppercase' }}>Display Name</label>

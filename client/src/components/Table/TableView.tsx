@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useAppStore } from '../../store/gameStore';
 import { GameTable, type Player } from './GameTable';
 import { ActionControls } from './ActionControls';
@@ -13,7 +13,8 @@ const COLORS = ['#3b82f6','#10b981','#8b5cf6','#ec4899','#f59e0b','#06b6d4'];
 export const TableView: React.FC = () => {
   const {
     roomCode, leaveRoom, tableState, seatIndex,
-    sendAction, sendThrow, balance, potWinners
+    sendAction, sendThrow, balance, potWinners,
+    isMusicEnabled,
   } = useAppStore();
 
   const { throwItem, items: throwableItems, removeItem: removeThrowable } = useThrowables();
@@ -110,8 +111,8 @@ export const TableView: React.FC = () => {
       {/* ═══ GLASS PANEL — wraps everything ═══ */}
       <div style={{
         position: 'relative',
-        width: 'calc(100vw - 40px)', maxWidth: 1200,
-        height: 'calc(100vh - 40px)', maxHeight: 820,
+        width: 'calc(100vw - 40px)', maxWidth: 1400,
+        height: 'calc(100vh - 40px)', maxHeight: 900,
         background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(24px)',
         border: '1px solid rgba(255,255,255,0.06)',
         borderRadius: 24,
@@ -135,87 +136,80 @@ export const TableView: React.FC = () => {
             <span style={{ color: '#334155' }}>·</span>
             <span style={{ color: '#4ade80', fontWeight: 700 }}>₹50/₹100 NLH</span>
             <span style={{ color: '#334155' }}>·</span>
-            <span>👥 {tableState.players.filter(Boolean).length}/6</span>
+            <span>👥 {tableState.players.filter(Boolean).length}/{tableState.maxPlayers}</span>
           </div>
 
           <div style={{
-            background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.15)',
+            background: 'rgba(255,193,7,0.1)', border: '1px solid rgba(255,193,7,0.3)',
             borderRadius: 20, padding: '5px 16px',
           }}>
-            <span style={{ color: '#4ade80', fontWeight: 900, fontFamily: 'monospace', fontSize: 14 }}>🪙 ₹{balance.toLocaleString()}</span>
+            <span style={{ color: '#fbbf24', fontWeight: 900, fontFamily: 'monospace', fontSize: 14 }}>💰 ₹{balance.toLocaleString()}</span>
           </div>
         </div>
 
-        {/* ── Main content area (chat + table) ── */}
-        <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
-
-          {/* Chat panel (left side, inside glass) */}
-          <div style={{
-            width: 220, flexShrink: 0, borderRight: '1px solid rgba(255,255,255,0.04)',
-            display: 'flex', flexDirection: 'column',
-          }}>
-            <ChatPanel activePlayers={activeChatPlayers} />
-          </div>
-
-          {/* Table area (center) */}
-          <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ transform: 'scale(0.85)', transformOrigin: 'center center' }}>
-              <GameTable
-                players={alignPlayersHeroBottom(tableState.players, seatIndex)}
-                pot={tableState.pot}
-                potWinners={potWinners}
-                communityCards={tableState.communityCards}
-                handDescription={handDesc}
-                handColor={handColor}
-                onThrowAt={(targetSeatIndex) => setThrowTarget(targetSeatIndex)}
-              />
-            </div>
-            <ThrowableLayer items={throwableItems} onRemove={removeThrowable} />
-          </div>
-        </div>
-
-        {/* ── Action controls bar (bottom, inside glass) ── */}
-        <div style={{
-          borderTop: '1px solid rgba(255,255,255,0.04)',
-          flexShrink: 0,
-        }}>
-          {myTurn && hero ? (
-            <ActionControls
-              canCheck={canCheck}
-              minRaise={Math.min(minRaise, maxRaise)}
-              maxRaise={maxRaise}
-              callAmount={callAmount}
+        {/* ── Main content area (table, full width) ── */}
+        <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ transform: 'scale(0.92)', transformOrigin: 'center center' }}>
+            <GameTable
+              players={alignPlayersHeroBottom(tableState.players, seatIndex)}
               pot={tableState.pot}
-              onFold={handleFold}
-              onCheck={handleCheck}
-              onCall={handleCall}
-              onRaise={handleRaise}
-              onAllIn={handleAllIn}
+              potWinners={potWinners}
+              communityCards={tableState.communityCards}
+              handDescription={handDesc}
+              handColor={handColor}
+              onThrowAt={(targetSeatIndex) => setThrowTarget(targetSeatIndex)}
             />
-          ) : hero && tableState.state === 'ACTIVE' ? (
-            <div style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 13, color: '#444', fontWeight: 600 }}>
-                Waiting for {tableState.players[tableState.currentTurnIndex]?.name || 'opponent'}…
-              </span>
-              <div style={{ display: 'flex', gap: 16 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: autoFold ? '#ef4444' : '#64748b', cursor: 'pointer', transition: 'color 0.2s' }}>
-                  <input type="checkbox" checked={autoFold} onChange={e => { setAutoFold(e.target.checked); setAutoCheck(false); }} />
-                  Auto Fold
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: autoCheck ? '#3b82f6' : '#64748b', cursor: 'pointer', transition: 'color 0.2s' }}>
-                  <input type="checkbox" checked={autoCheck} onChange={e => { setAutoCheck(e.target.checked); setAutoFold(false); }} />
-                  Auto Check
-                </label>
+          </div>
+          <ThrowableLayer items={throwableItems} heroSeat={seatIndex} onRemove={removeThrowable} />
+
+          {/* ── Action controls (floating bottom-right) ── */}
+          <div style={{ position: 'absolute', bottom: 24, right: 24, zIndex: 40 }}>
+            {myTurn && hero ? (
+              <ActionControls
+                canCheck={canCheck}
+                minRaise={Math.min(minRaise, maxRaise)}
+                maxRaise={maxRaise}
+                callAmount={callAmount}
+                pot={tableState.pot}
+                onFold={handleFold}
+                onCheck={handleCheck}
+                onCall={handleCall}
+                onRaise={handleRaise}
+                onAllIn={handleAllIn}
+              />
+            ) : hero && tableState.state === 'ACTIVE' ? (
+              <div style={{ background: 'rgba(30,41,59,0.85)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '12px 16px', display: 'flex', gap: 12, alignItems: 'center', flexDirection: 'column' }}>
+                <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>
+                  Waiting…
+                </span>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: autoFold ? '#ef4444' : '#64748b', cursor: 'pointer', transition: 'color 0.2s', whiteSpace: 'nowrap' }}>
+                    <input type="checkbox" checked={autoFold} onChange={e => { setAutoFold(e.target.checked); setAutoCheck(false); }} />
+                    Fold
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: autoCheck ? '#3b82f6' : '#64748b', cursor: 'pointer', transition: 'color 0.2s', whiteSpace: 'nowrap' }}>
+                    <input type="checkbox" checked={autoCheck} onChange={e => { setAutoCheck(e.target.checked); setAutoFold(false); }} />
+                    Check
+                  </label>
+                </div>
               </div>
+            ) : (
+              <div style={{ background: 'rgba(30,41,59,0.85)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '12px 16px' }}>
+                <span style={{ fontSize: 11, color: '#475569', fontWeight: 600 }}>
+                  {tableState.state === 'WAITING' ? '⏳ Starting…' :
+                   tableState.state === 'SHOWDOWN' ? '🏆 Showdown!' : 'Waiting…'}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* ── Chat panel (floating left sidebar) ── */}
+          <div style={{ position: 'absolute', bottom: 24, left: 24, maxWidth: 200, background: 'rgba(30,41,59,0.85)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, overflow: 'hidden', maxHeight: '60vh', display: 'flex', flexDirection: 'column', zIndex: 30 }}>
+            <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1 }}>Chat</div>
+            <div style={{ flex: 1, overflow: 'auto' }}>
+              <ChatPanel activePlayers={activeChatPlayers} />
             </div>
-          ) : (
-            <div style={{ padding: '16px 0', textAlign: 'center' }}>
-              <span style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>
-                {tableState.state === 'WAITING' ? '⏳ Next hand starting soon…' :
-                 tableState.state === 'SHOWDOWN' ? '🏆 Showdown!' : 'Please wait…'}
-              </span>
-            </div>
-          )}
+          </div>
         </div>
       </div>
 
@@ -263,8 +257,59 @@ export const TableView: React.FC = () => {
       )}
 
       {showSettings && <SettingsMenu onClose={() => setShowSettings(false)} />}
+      <AmbientMusic enabled={isMusicEnabled} />
     </div>
   );
+};
+
+/** ═══ Ambient Background Music (Synthesized) ═══ */
+const AmbientMusic: React.FC<{ enabled: boolean }> = ({ enabled }) => {
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+
+  useEffect(() => {
+    if (enabled) {
+      if (!audioCtxRef.current) {
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        audioCtxRef.current = ctx;
+
+        // Subtle low drone
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(60, ctx.currentTime);
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.04, ctx.currentTime + 2);
+
+        // Add some harmonics for texture
+        const osc2 = ctx.createOscillator();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(120, ctx.currentTime);
+        
+        const lfo = ctx.createOscillator();
+        const lfoGain = ctx.createGain();
+        lfo.frequency.value = 0.1;
+        lfoGain.gain.value = 5;
+        lfo.connect(lfoGain).connect(osc.frequency);
+
+        osc.connect(gain).connect(ctx.destination);
+        osc2.connect(gain).connect(ctx.destination);
+        
+        osc.start();
+        osc2.start();
+        lfo.start();
+        gainNodeRef.current = gain;
+      } else if (audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume();
+      }
+    } else {
+      if (audioCtxRef.current && audioCtxRef.current.state === 'running') {
+        audioCtxRef.current.suspend();
+      }
+    }
+  }, [enabled]);
+
+  return null;
 };
 
 /** Rotate players so hero is always at visual index 3 (bottom center) */

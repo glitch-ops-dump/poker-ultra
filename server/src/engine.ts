@@ -352,7 +352,9 @@ export class TexasHoldemEngine {
       const w = this.state.players.find(p => p?.id === playerId);
       if (w) {
         w.chips += amount;
-        this.log(`🏆 ${w.name} wins ₹${amount}!`);
+        const res = handScores.get(w.id);
+        const handText = res ? ` with ${res.handProps.rankName}` : '';
+        this.log(`🏆 ${w.name} wins ₹${amount}${handText}!`);
         winEvents.push({ seatIndex: w.seatIndex, amount });
       }
     });

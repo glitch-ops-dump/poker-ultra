@@ -23,12 +23,12 @@ const AVATAR_BG = ['#3b82f6','#10b981','#8b5cf6','#ec4899','#f59e0b','#06b6d4'];
 
 /* Seat positions relative to the table container (px offsets from edges) */
 const SEAT_POS: Record<number, React.CSSProperties> = {
-  0: { position: 'absolute', top: '-70px', left: '50%', transform: 'translateX(-50%)' },
-  1: { position: 'absolute', top: '10%',   right: '-155px' },
-  2: { position: 'absolute', bottom: '10%', right: '-155px' },
-  3: { position: 'absolute', bottom: '-70px', left: '50%', transform: 'translateX(-50%)' },  // HERO always here
-  4: { position: 'absolute', bottom: '10%', left: '-155px' },
-  5: { position: 'absolute', top: '10%',   left: '-155px' },
+  0: { position: 'absolute', top: '-50px', left: '50%', transform: 'translateX(-50%)' },
+  1: { position: 'absolute', top: '15%',   right: '-100px' },
+  2: { position: 'absolute', bottom: '15%', right: '-100px' },
+  3: { position: 'absolute', bottom: '-50px', left: '50%', transform: 'translateX(-50%)' },  // HERO always here
+  4: { position: 'absolute', bottom: '15%', left: '-100px' },
+  5: { position: 'absolute', top: '15%',   left: '-100px' },
 };
 
 /* ═══ Player Pod ═══ */
@@ -208,7 +208,7 @@ export const GameTable: React.FC<TableProps> = ({
     prevCommCount.current = communityCards.length;
   }, [communityCards.length]);
   return (
-    <div style={{ position: 'relative', width: '70vw', maxWidth: 800, aspectRatio: '800 / 440' }}>
+    <div style={{ position: 'relative', width: '75vw', maxWidth: 950, aspectRatio: '950 / 520' }}>
       {/* ── Outer rail ── */}
       <div style={{
         position: 'absolute', inset: 0, borderRadius: '50%',

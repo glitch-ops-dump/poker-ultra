@@ -40,12 +40,18 @@ const SEAT_CENTERS: Record<number, { x: string; y: string }> = {
 
 const ThrowableAnimation: React.FC<{
   item: ThrowableItem;
+  heroSeat: number;
   onComplete: (id: string) => void;
-}> = ({ item, onComplete }) => {
+}> = ({ item, heroSeat, onComplete }) => {
   const [phase, setPhase] = useState<'flying' | 'splash' | 'done'>('flying');
 
-  const from = SEAT_CENTERS[item.fromSeat] || SEAT_CENTERS[3];
-  const to = SEAT_CENTERS[item.toSeat] || SEAT_CENTERS[0];
+  // Convert server seats to visual indices (Hero is always visual 3)
+  const offset = (3 - heroSeat + 6) % 6;
+  const fromVis = (item.fromSeat + offset) % 6;
+  const toVis = (item.toSeat + offset) % 6;
+
+  const from = SEAT_CENTERS[fromVis] || SEAT_CENTERS[3];
+  const to = SEAT_CENTERS[toVis] || SEAT_CENTERS[0];
 
   useEffect(() => {
     const flyTimer = setTimeout(() => setPhase('splash'), 600);
@@ -109,11 +115,19 @@ const ThrowableAnimation: React.FC<{
 
 /* ═══ Throwable Manager ═══ */
 
-// ThrowableLayer must be a standalone component exported at module level — never defined inside a hook.
-export const ThrowableLayer: React.FC<{ items: ThrowableItem[]; onRemove: (id: string) => void }> = ({ items, onRemove }) => (
+export const ThrowableLayer: React.FC<{ 
+  items: ThrowableItem[]; 
+  heroSeat: number | null;
+  onRemove: (id: string) => void 
+}> = ({ items, heroSeat, onRemove }) => (
   <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 100 }}>
     {items.map(item => (
-      <ThrowableAnimation key={item.id} item={item} onComplete={onRemove} />
+      <ThrowableAnimation 
+        key={item.id} 
+        item={item} 
+        heroSeat={heroSeat ?? 0} 
+        onComplete={onRemove} 
+      />
     ))}
   </div>
 );

@@ -23,6 +23,7 @@ export interface TableState {
   roomId: string;
   state: string;
   players: (Player | null)[];
+  maxPlayers: number;
   communityCards: Card[];
   pot: number;
   currentBet: number;
