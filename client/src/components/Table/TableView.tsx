@@ -76,13 +76,8 @@ export const TableView: React.FC = () => {
     }
   }, [myTurn, hero, autoFold, autoCheck, canCheck]);
 
-  if (!tableState || seatIndex === null) {
-    return (
-      <div style={{ width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0f18' }}>
-        <span style={{ color: '#4ade80', fontSize: 22, fontWeight: 900, fontStyle: 'italic' }}>Connecting to table…</span>
-      </div>
-    );
-  }
+  // Guarantees for the rest of the file (App.tsx ensures these are present)
+  if (!tableState || seatIndex === null) return null;
 
   // Hand evaluation string
   let handDesc = '';
