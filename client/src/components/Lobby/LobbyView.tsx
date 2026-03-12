@@ -7,6 +7,7 @@ export const LobbyView: React.FC = () => {
   const { displayName, setDisplayName, createRoom, joinRoom, balance, activeRooms, fetchRooms } = useAppStore();
   const [joinCode, setJoinCode] = useState('');
   const [tableSize, setTableSize] = useState<TableSize>(6);
+  const [withBots, setWithBots] = useState(true);
 
   // Fetch real rooms on mount and refresh every 5s
   useEffect(() => {
@@ -15,7 +16,7 @@ export const LobbyView: React.FC = () => {
     return () => clearInterval(interval);
   }, [fetchRooms]);
 
-  const handleCreate = () => createRoom(tableSize);
+  const handleCreate = () => createRoom(tableSize, withBots);
 
   return (
     <div style={{
@@ -77,22 +78,40 @@ export const LobbyView: React.FC = () => {
           </div>
         </div>
 
-        {/* Table size selector */}
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Table Size</label>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {([2, 4, 6] as TableSize[]).map(n => (
-              <button key={n} onClick={() => setTableSize(n)}
-                style={{
-                  flex: 1, padding: '9px 0', borderRadius: 8, fontWeight: 800, fontSize: 13, cursor: 'pointer',
-                  border: tableSize === n ? '1.5px solid #4ade80' : '1px solid rgba(255,255,255,0.08)',
-                  background: tableSize === n ? 'rgba(52,211,153,0.12)' : 'rgba(255,255,255,0.03)',
-                  color: tableSize === n ? '#4ade80' : '#64748b',
-                  transition: 'all 0.15s',
-                }}>
-                {n} Players
-              </button>
-            ))}
+        {/* Table size selector + Bot Toggle */}
+        <div style={{ marginBottom: 16, display: 'flex', gap: 20 }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Table Size</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {([2, 4, 6] as TableSize[]).map(n => (
+                <button key={n} onClick={() => setTableSize(n)}
+                  style={{
+                    flex: 1, padding: '9px 0', borderRadius: 8, fontWeight: 800, fontSize: 13, cursor: 'pointer',
+                    border: tableSize === n ? '1.5px solid #4ade80' : '1px solid rgba(255,255,255,0.08)',
+                    background: tableSize === n ? 'rgba(52,211,153,0.12)' : 'rgba(255,255,255,0.03)',
+                    color: tableSize === n ? '#4ade80' : '#64748b',
+                    transition: 'all 0.15s',
+                  }}>
+                  {n} Players
+                </button>
+              ))}
+            </div>
+          </div>
+          <div style={{ width: 120 }}>
+            <label style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Fill with Bots</label>
+            <div 
+              onClick={() => setWithBots(!withBots)}
+              style={{
+                height: 38, borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+                display: 'flex', alignItems: 'center', padding: '0 12px', cursor: 'pointer', transition: 'all 0.2s',
+                color: withBots ? '#4ade80' : '#64748b', gap: 8,
+              }}>
+              <div style={{
+                width: 14, height: 14, borderRadius: '50%', border: '2px solid currentColor',
+                background: withBots ? 'currentColor' : 'transparent', transition: 'all 0.2s'
+              }} />
+              <span style={{ fontSize: 13, fontWeight: 800 }}>{withBots ? 'ON' : 'OFF'}</span>
+            </div>
           </div>
         </div>
 

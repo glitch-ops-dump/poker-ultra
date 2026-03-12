@@ -134,7 +134,7 @@ const BOT_NAMES = ['Astro', 'BluffKing', 'ChipLord', 'DealerD', 'Eva'];
 io.on('connection', (socket: Socket) => {
   console.log(`[+] Connected: ${socket.id}`);
 
-  socket.on('create_room', ({ maxPlayers = 6 }: { maxPlayers?: 2 | 4 | 6 }, callback) => {
+  socket.on('create_room', ({ maxPlayers = 6, withBots = true }: { maxPlayers?: 2 | 4 | 6, withBots?: boolean }, callback) => {
     const roomId = roomManager.createRoom(maxPlayers);
     const engine = roomManager.getRoom(roomId)!;
 
@@ -144,13 +144,17 @@ io.on('connection', (socket: Socket) => {
       io.to(roomId).emit('sc_pot_win', winners);
     });
 
-    // Fill bot seats — leave seat 0 for the human, fill the rest with bots
-    const botCount = maxPlayers - 1;
-    for (let i = 1; i <= botCount && i < BOT_NAMES.length + 1; i++) {
-      engine.addPlayer(`bot_${roomId}_${i}`, BOT_NAMES[i - 1], 50000, i, true);
+    // Fill bot seats if requested
+    if (withBots) {
+      const botCount = maxPlayers - 1;
+      for (let i = 1; i <= botCount && i < BOT_NAMES.length + 1; i++) {
+        engine.addPlayer(`bot_${roomId}_${i}`, BOT_NAMES[i - 1], 50000, i, true);
+      }
+      console.log(`[ROOM] Created ${roomId} (${maxPlayers}-player) with ${botCount} bots`);
+    } else {
+      console.log(`[ROOM] Created ${roomId} (${maxPlayers}-player) WITHOUT bots`);
     }
-
-    console.log(`[ROOM] Created ${roomId} (${maxPlayers}-player) with ${botCount} bots`);
+    
     callback({ roomId });
   });
 

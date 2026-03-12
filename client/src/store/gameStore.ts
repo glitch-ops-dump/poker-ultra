@@ -47,7 +47,7 @@ interface AppState {
 
   setDisplayName: (name: string) => void;
   setBalance: (amt: number) => void;
-  createRoom: (maxPlayers?: 2 | 4 | 6) => void;
+  createRoom: (maxPlayers?: 2 | 4 | 6, withBots?: boolean) => void;
   joinRoom: (code: string) => void;
   leaveRoom: () => void;
   sendAction: (action: string, amount?: number) => void;
@@ -135,9 +135,9 @@ export const useAppStore = create<AppState>((set, get) => {
       set({ balance: amt });
     },
 
-    createRoom: (maxPlayers = 6) => {
+    createRoom: (maxPlayers = 6, withBots = true) => {
       if (!socket.connected) socket.connect();
-      socket.emit('create_room', { maxPlayers }, (res: { roomId: string }) => {
+      socket.emit('create_room', { maxPlayers, withBots }, (res: { roomId: string }) => {
         if (res.roomId) {
           get().joinRoom(res.roomId);
         }
