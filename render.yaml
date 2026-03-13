@@ -1,13 +1,12 @@
 services:
   - type: web
     name: poker-ultra
-    plan: standard
+    plan: free
     env: node
-    region: oregon
+    region: singapore
     buildCommand: cd client && npm install && npm run build && cd ../server && npm install && npm run build
     startCommand: node server/dist/index.js
+    healthCheckPath: /api/rooms
     envVars:
       - key: NODE_ENV
         value: production
-    domains:
-      - poker-ultra.onrender.com

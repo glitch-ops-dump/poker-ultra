@@ -278,4 +278,4 @@ app.get('/{*path}', (_req, res) => {
   res.sendFile(path.join(clientDist, 'index.html'));
 });
 
-server.listen(PORT, () => console.log(`[🚀] Poker Ultra Server on http://localhost:${PORT}`));
+server.listen(Number(PORT), '0.0.0.0', () => console.log(`[🚀] Poker Ultra Server on http://0.0.0.0:${PORT}`));
