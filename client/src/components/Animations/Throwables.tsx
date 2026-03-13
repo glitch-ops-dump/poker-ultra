@@ -79,46 +79,55 @@ const ThrowableAnimation: React.FC<{
     );
   }
 
-  // Calculate horizontal and vertical deltas
-  const fromX = parseFloat(from.x);
-  const fromY = parseFloat(from.y);
-  const toX = parseFloat(to.x);
-  const toY = parseFloat(to.y);
-  const deltaX = toX - fromX;
-  const deltaY = toY - fromY;
+  // Animate from source seat to target seat using the parent's percentage-based positioning
+  // The element starts at from.x/from.y via left/top. We animate left/top directly.
+  const dx = parseFloat(to.x) - parseFloat(from.x);
+  const dy = parseFloat(to.y) - parseFloat(from.y);
+  // Arc height: higher for longer throws
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  const arcHeight = Math.max(15, dist * 0.4);
 
   return (
-    <div style={{
-      position: 'absolute', zIndex: 100, pointerEvents: 'none',
-      left: from.x, top: from.y,
-      transform: 'translate(-50%, -50%)',
-    }}>
-      <span style={{
-        fontSize: 36,
-        display: 'inline-block',
-        animation: `throwTo_${item.id} 0.6s cubic-bezier(0.25,0.46,0.45,0.94) forwards, spin 0.6s linear`,
-        filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))',
-      }}>
-        {ITEM_EMOJI[item.type]}
-      </span>
+    <>
+      <div
+        className={`throwable_${item.id}`}
+        style={{
+          position: 'absolute', zIndex: 100, pointerEvents: 'none',
+          left: from.x, top: from.y,
+          transform: 'translate(-50%, -50%)',
+        }}
+      >
+        <span style={{
+          fontSize: 36,
+          display: 'inline-block',
+          filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))',
+          animation: `throwSpin_${item.id} 0.7s linear`,
+        }}>
+          {ITEM_EMOJI[item.type]}
+        </span>
+      </div>
 
-      {/* Inject keyframes for this specific throw with parabolic arc */}
       <style>{`
-        @keyframes throwTo_${item.id} {
-          0% { transform: translate(-50%,-50%) scale(0.5); }
-          25% { transform: translate(calc(-50% + ${deltaX * 0.25}%), calc(-50% + ${deltaY * 0.25}% - 40px)) scale(0.9); }
-          50% { transform: translate(calc(-50% + ${deltaX * 0.5}%), calc(-50% + ${deltaY * 0.5}% - 60px)) scale(1.2); }
-          75% { transform: translate(calc(-50% + ${deltaX * 0.75}%), calc(-50% + ${deltaY * 0.75}% - 20px)) scale(1.1); }
-          100% { transform: translate(calc(-50% + ${deltaX}%), calc(-50% + ${deltaY}%)) scale(1); opacity: 1; }
+        .throwable_${item.id} {
+          animation: throwMove_${item.id} 0.7s cubic-bezier(0.2,0.6,0.4,1) forwards;
         }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes throwMove_${item.id} {
+          0%   { left: ${from.x}; top: ${from.y}; transform: translate(-50%,-50%) scale(0.5); }
+          30%  { left: ${parseFloat(from.x) + dx * 0.3}%; top: ${parseFloat(from.y) + dy * 0.3 - arcHeight * 0.7}%; transform: translate(-50%,-50%) scale(1.1); }
+          60%  { left: ${parseFloat(from.x) + dx * 0.6}%; top: ${parseFloat(from.y) + dy * 0.6 - arcHeight}%; transform: translate(-50%,-50%) scale(1.2); }
+          100% { left: ${to.x}; top: ${to.y}; transform: translate(-50%,-50%) scale(1); }
+        }
+        @keyframes throwSpin_${item.id} {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
         @keyframes splashPop {
           0% { transform: translate(-50%,-50%) scale(0.3); opacity: 1; }
           30% { transform: translate(-50%,-50%) scale(1.8); opacity: 1; }
           100% { transform: translate(-50%,-50%) scale(2.5); opacity: 0; }
         }
       `}</style>
-    </div>
+    </>
   );
 };
 

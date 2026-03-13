@@ -35,7 +35,6 @@ export const TableView: React.FC = () => {
   const [autoFold, setAutoFold] = useState(false);
   const [autoCheck, setAutoCheck] = useState(false);
   const [actionTimer, setActionTimer] = useState<number | null>(null);
-  const [beepedAt30s, setBeepedAt30s] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -105,11 +104,15 @@ export const TableView: React.FC = () => {
   const handleRaise = (amount: number) => { if (myTurn) { playSound('chips'); sendAction('raise', amount); } };
   const handleAllIn = () => { if (myTurn) { playSound('allin'); sendAction('allin'); } };
 
-  // Action timeout system: 30s beep, 60s auto-action
+  // Action timeout system: 30s warning beep, 60s auto-action
+  const canCheckRef = useRef(canCheck);
+  canCheckRef.current = canCheck;
+  const beepedRef = useRef(false);
+
   useEffect(() => {
     if (myTurn && hero && !autoFold && !autoCheck) {
       setActionTimer(0);
-      setBeepedAt30s(false);
+      beepedRef.current = false;
 
       if (timeoutRef.current) clearInterval(timeoutRef.current);
 
@@ -118,15 +121,15 @@ export const TableView: React.FC = () => {
           if (prev === null) return null;
           const next = prev + 1;
 
-          // Beep at 30 seconds
-          if (next === 30 && !beepedAt30s) {
+          // Warning beep at 30 seconds
+          if (next === 30 && !beepedRef.current) {
             playSound('beep');
-            setBeepedAt30s(true);
+            beepedRef.current = true;
           }
 
           // Auto-action at 60 seconds
           if (next >= 60) {
-            if (canCheck) {
+            if (canCheckRef.current) {
               handleCheck();
             } else {
               handleFold();
@@ -144,10 +147,10 @@ export const TableView: React.FC = () => {
       };
     } else {
       setActionTimer(null);
-      setBeepedAt30s(false);
+      beepedRef.current = false;
       if (timeoutRef.current) clearInterval(timeoutRef.current);
     }
-  }, [myTurn, hero, autoFold, autoCheck, canCheck, beepedAt30s]);
+  }, [myTurn, hero, autoFold, autoCheck]);
 
   // Auto-actions
   useEffect(() => {
