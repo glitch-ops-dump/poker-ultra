@@ -4,7 +4,6 @@ import { GameTable, type Player } from './GameTable';
 import { ActionControls } from './ActionControls';
 import { ChatPanel } from '../Chat/ChatPanel';
 import { SettingsMenu } from '../Menu/SettingsMenu';
-import { HandHistoryPanel } from './HandHistoryPanel';
 import { useThrowables, ThrowableLayer, type ThrowableItem } from '../Animations/Throwables';
 import { evaluateHand, getHandColor } from '../../utils/handEvaluator';
 import { playSound } from '../../utils/sounds';
@@ -30,11 +29,14 @@ export const TableView: React.FC = () => {
   const [throwTarget, setThrowTarget] = useState<number | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showHistory, setShowHistory] = useState(true);
+  const [showChat, setShowChat] = useState(true);
 
   // Auto-action states
   const [autoFold, setAutoFold] = useState(false);
   const [autoCheck, setAutoCheck] = useState(false);
+  const [actionTimer, setActionTimer] = useState<number | null>(null);
+  const [beepedAt30s, setBeepedAt30s] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -103,6 +105,50 @@ export const TableView: React.FC = () => {
   const handleRaise = (amount: number) => { if (myTurn) { playSound('chips'); sendAction('raise', amount); } };
   const handleAllIn = () => { if (myTurn) { playSound('allin'); sendAction('allin'); } };
 
+  // Action timeout system: 30s beep, 60s auto-action
+  useEffect(() => {
+    if (myTurn && hero && !autoFold && !autoCheck) {
+      setActionTimer(0);
+      setBeepedAt30s(false);
+
+      if (timeoutRef.current) clearInterval(timeoutRef.current);
+
+      timeoutRef.current = setInterval(() => {
+        setActionTimer(prev => {
+          if (prev === null) return null;
+          const next = prev + 1;
+
+          // Beep at 30 seconds
+          if (next === 30 && !beepedAt30s) {
+            playSound('beep');
+            setBeepedAt30s(true);
+          }
+
+          // Auto-action at 60 seconds
+          if (next >= 60) {
+            if (canCheck) {
+              handleCheck();
+            } else {
+              handleFold();
+            }
+            clearInterval(timeoutRef.current!);
+            return null;
+          }
+
+          return next;
+        });
+      }, 1000);
+
+      return () => {
+        if (timeoutRef.current) clearInterval(timeoutRef.current);
+      };
+    } else {
+      setActionTimer(null);
+      setBeepedAt30s(false);
+      if (timeoutRef.current) clearInterval(timeoutRef.current);
+    }
+  }, [myTurn, hero, autoFold, autoCheck, canCheck, beepedAt30s]);
+
   // Auto-actions
   useEffect(() => {
     if (myTurn && hero) {
@@ -165,7 +211,7 @@ export const TableView: React.FC = () => {
         </div>
         <div style={{ width: 1, height: 20, background: GOLD_BORDER }} />
         <div style={{ fontSize: 12, color: TEXT_MUTED, display: 'flex', alignItems: 'center', gap: 5 }}>
-          PLAYERS <strong style={{ color: TEXT, fontWeight: 600, fontSize: 13 }}>{tableState.players.filter(Boolean).length} / {tableState.maxPlayers}</strong>
+          PLAYERS <strong style={{ color: TEXT, fontWeight: 600, fontSize: 13 }}>{tableState.players.filter(Boolean).length}/{tableState.maxPlayers || 6}</strong>
         </div>
 
         <div style={{ flex: 1 }} />
@@ -214,42 +260,32 @@ export const TableView: React.FC = () => {
       {/* ═══ MAIN LAYOUT ═══ */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
 
-        {/* ── Left: Hand History Panel ── */}
-        {showHistory && (
-          <HandHistoryPanel
-            logs={tableState.logs}
-            onClose={() => setShowHistory(false)}
-          />
-        )}
-
         {/* ── Center: Table Area ── */}
         <div style={{
           flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
           position: 'relative', overflow: 'hidden',
           background: 'radial-gradient(ellipse at 50% 30%, rgba(26,92,46,0.06) 0%, transparent 70%)',
         }}>
-          {/* History toggle (when hidden) */}
-          {!showHistory && (
-            <button onClick={() => setShowHistory(true)} style={{
+          {/* Chat toggle (when hidden) */}
+          {!showChat && (
+            <button onClick={() => setShowChat(true)} style={{
               position: 'absolute', top: 10, left: 10, zIndex: 30,
               background: GOLD_DIM, border: `1px solid ${GOLD_BORDER}`,
               borderRadius: 6, padding: '4px 10px', cursor: 'pointer',
               fontSize: 10, fontWeight: 700, color: GOLD, letterSpacing: 1,
               textTransform: 'uppercase',
-            }}>📜 History</button>
+            }}>💬 Chat</button>
           )}
 
-          <div style={{ transform: 'scale(0.88)', transformOrigin: 'center center' }}>
-            <GameTable
-              players={alignPlayersHeroBottom(tableState.players, seatIndex)}
-              pot={tableState.pot}
-              potWinners={potWinners}
-              communityCards={tableState.communityCards}
-              handDescription={handDesc}
-              handColor={handColor}
-              onThrowAt={(targetSeatIndex) => setThrowTarget(targetSeatIndex)}
-            />
-          </div>
+          <GameTable
+            players={alignPlayersHeroBottom(tableState.players, seatIndex)}
+            pot={tableState.pot}
+            potWinners={potWinners}
+            communityCards={tableState.communityCards}
+            handDescription={handDesc}
+            handColor={handColor}
+            onThrowAt={(targetSeatIndex) => setThrowTarget(targetSeatIndex)}
+          />
           <ThrowableLayer items={throwableItems} heroSeat={seatIndex} onRemove={removeThrowable} />
 
           {/* Fullscreen hint */}
@@ -261,7 +297,17 @@ export const TableView: React.FC = () => {
           </div>
 
           {/* ── Action controls (floating bottom-right) ── */}
-          <div style={{ position: 'absolute', bottom: 24, right: 24, zIndex: 40 }}>
+          <div style={{ position: 'absolute', bottom: 24, right: 24, zIndex: 40, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+            {myTurn && hero && actionTimer !== null && (
+              <div style={{
+                background: actionTimer >= 30 ? 'rgba(200,50,50,0.15)' : 'rgba(212,169,80,0.15)',
+                border: actionTimer >= 30 ? '1px solid #e05555' : `1px solid ${GOLD_BORDER}`,
+                borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700,
+                color: actionTimer >= 30 ? '#e05555' : GOLD,
+              }}>
+                ⏱ {60 - actionTimer}s
+              </div>
+            )}
             {myTurn && hero ? (
               <ActionControls
                 canCheck={canCheck}
@@ -299,18 +345,23 @@ export const TableView: React.FC = () => {
             )}
           </div>
 
-          {/* ── Chat panel (floating bottom-left) ── */}
-          <div style={{
-            position: 'absolute', bottom: 24, left: 24, maxWidth: 200,
-            background: 'rgba(19,30,48,0.95)', border: `1px solid ${GOLD_BORDER}`,
-            borderRadius: 12, overflow: 'hidden', maxHeight: '60vh',
-            display: 'flex', flexDirection: 'column', zIndex: 30,
-          }}>
-            <div style={{ padding: '8px 12px', borderBottom: `1px solid ${GOLD_BORDER}`, fontSize: 10, fontWeight: 700, color: GOLD, textTransform: 'uppercase', letterSpacing: 1 }}>Chat</div>
-            <div style={{ flex: 1, overflow: 'auto' }}>
-              <ChatPanel activePlayers={activeChatPlayers} />
+          {/* ── Chat + History panel (bottom-left) ── */}
+          {showChat && (
+            <div style={{
+              position: 'absolute', bottom: 24, left: 24, width: 260,
+              background: 'rgba(19,30,48,0.95)', border: `1px solid ${GOLD_BORDER}`,
+              borderRadius: 12, overflow: 'hidden', maxHeight: '65vh',
+              display: 'flex', flexDirection: 'column', zIndex: 30,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderBottom: `1px solid ${GOLD_BORDER}` }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: GOLD, textTransform: 'uppercase', letterSpacing: 1 }}>Chat & History</span>
+                <button onClick={() => setShowChat(false)} style={{ background: 'none', border: 'none', color: TEXT_MUTED, cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>×</button>
+              </div>
+              <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <ChatPanel activePlayers={activeChatPlayers} />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 

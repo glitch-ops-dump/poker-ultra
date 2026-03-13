@@ -104,7 +104,7 @@ const PlayerPod: React.FC<{
   const thinking = player.status === 'thinking';
   const bgColor = AVATAR_BG[player.seatIndex % AVATAR_BG.length];
   const fgColor = AVATAR_FG[player.seatIndex % AVATAR_FG.length];
-  const chipStr = player.chips >= 1000 ? `₹${Math.round(player.chips / 1000)}k` : `₹${player.chips}`;
+  const chipStr = `₹${player.chips.toLocaleString()}`;
 
   const prevCards = useRef<string | null>(null);
   const cardKey = player.cards ? player.cards.map(c => c.value + c.suit).join() : null;
@@ -204,13 +204,13 @@ const PlayerPod: React.FC<{
         }}>
           {player.isHero ? (
             <>
-              <AnimatedCard card={player.cards[0]} width={44} height={62} dealFrom={isNewDeal ? dealerPos : undefined} dealDelay={0.1} flipDelay={0.4} />
-              <AnimatedCard card={player.cards[1]} width={44} height={62} dealFrom={isNewDeal ? dealerPos : undefined} dealDelay={0.25} flipDelay={0.4} />
+              <AnimatedCard card={player.cards[0]} width={66} height={93} dealFrom={isNewDeal ? dealerPos : undefined} dealDelay={0.1} flipDelay={0.4} />
+              <AnimatedCard card={player.cards[1]} width={66} height={93} dealFrom={isNewDeal ? dealerPos : undefined} dealDelay={0.25} flipDelay={0.4} />
             </>
           ) : (
             <>
-              <AnimatedCard card={{ ...player.cards[0], faceDown: true }} width={32} height={45} faceDown={true} dealFrom={isNewDeal ? dealerPos : undefined} dealDelay={player.seatIndex * 0.1} />
-              <AnimatedCard card={{ ...player.cards[1], faceDown: true }} width={32} height={45} faceDown={true} dealFrom={isNewDeal ? dealerPos : undefined} dealDelay={player.seatIndex * 0.1 + 0.05} />
+              <AnimatedCard card={{ ...player.cards[0], faceDown: true }} width={48} height={67} faceDown={true} dealFrom={isNewDeal ? dealerPos : undefined} dealDelay={player.seatIndex * 0.1} />
+              <AnimatedCard card={{ ...player.cards[1], faceDown: true }} width={48} height={67} faceDown={true} dealFrom={isNewDeal ? dealerPos : undefined} dealDelay={player.seatIndex * 0.1 + 0.05} />
             </>
           )}
         </div>
@@ -248,7 +248,7 @@ export const GameTable: React.FC<TableProps> = ({
   }, [communityCards.length]);
 
   return (
-    <div style={{ position: 'relative', width: '75vw', maxWidth: 950, aspectRatio: '950 / 520' }}>
+    <div style={{ position: 'relative', width: '90vw', maxWidth: 1140, aspectRatio: '1140 / 624' }}>
       {/* ── Outer rail (gold-trimmed) ── */}
       <div style={{
         position: 'absolute', inset: 0, borderRadius: '50%',
@@ -278,8 +278,7 @@ export const GameTable: React.FC<TableProps> = ({
           <div style={{ position: 'absolute', top: '22%', left: '50%', transform: 'translateX(-50%)', zIndex: 5, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
             <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', color: '#4a5a70' }}>Total Pot</div>
             <div ref={potRef} style={{
-              fontSize: 18, fontWeight: 800, color: GOLD, letterSpacing: 0.5,
-              textShadow: '0 0 16px rgba(212,169,80,0.5)',
+              fontSize: 18, fontWeight: 800, color: '#c9a852', letterSpacing: 0.5,
               fontFamily: "'Cinzel', serif",
             }}>
               ₹{pot.toLocaleString()}
@@ -317,14 +316,14 @@ export const GameTable: React.FC<TableProps> = ({
             {communityCards.map((c, i) => (
               <AnimatedCard
                 key={`${c.value}${c.suit}`}
-                card={c} width={60} height={84}
+                card={c} width={90} height={126}
                 dealFrom={i >= prevCommCount.current ? dealerPos : undefined}
                 dealDelay={(i - prevCommCount.current) * 0.15}
                 flipDelay={0.4}
               />
             ))}
             {Array.from({ length: 5 - communityCards.length }).map((_, i) => (
-              <div key={`e${i}`} style={{ width: 60, height: 84, borderRadius: 7, border: '2px dashed rgba(255,255,255,0.08)', background: 'rgba(0,0,0,0.08)' }} />
+              <div key={`e${i}`} style={{ width: 90, height: 126, borderRadius: 7, border: '2px dashed rgba(255,255,255,0.08)', background: 'rgba(0,0,0,0.08)' }} />
             ))}
           </div>
 
@@ -332,12 +331,12 @@ export const GameTable: React.FC<TableProps> = ({
           {handDescription && (
             <div style={{ position: 'absolute', top: '76%', left: '50%', transform: 'translateX(-50%)', zIndex: 6 }}>
               <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
+                display: 'inline-flex', alignItems: 'center', gap: 8,
                 background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)',
-                padding: '4px 14px', borderRadius: 16, border: `1px solid ${handColor || '#475569'}40`,
+                padding: '6px 21px', borderRadius: 16, border: `1px solid ${handColor || '#475569'}40`,
               }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: handColor || '#475569' }} />
-                <span style={{ fontSize: 10, fontWeight: 800, color: handColor || '#94a3b8', letterSpacing: 0.5 }}>
+                <div style={{ width: 9, height: 9, borderRadius: '50%', background: handColor || '#475569' }} />
+                <span style={{ fontSize: 15, fontWeight: 800, color: handColor || '#94a3b8', letterSpacing: 0.5 }}>
                   {handDescription}
                 </span>
               </div>

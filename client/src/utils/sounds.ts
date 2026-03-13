@@ -3,7 +3,7 @@
  * Generates short synthesized sounds for poker actions.
  */
 
-type SoundName = 'fold' | 'check' | 'call' | 'chips' | 'deal' | 'allin' | 'throw' | 'win';
+type SoundName = 'fold' | 'check' | 'call' | 'chips' | 'deal' | 'allin' | 'throw' | 'win' | 'beep';
 
 let audioCtx: AudioContext | null = null;
 
@@ -152,6 +152,20 @@ const SOUNDS: Record<SoundName, () => void> = {
       osc.start(t);
       osc.stop(t + 0.3);
     });
+  },
+
+  beep: () => {
+    const ctx = getCtx();
+    // High-pitched warning beep
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain).connect(ctx.destination);
+    osc.frequency.value = 1200;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.15);
   },
 };
 

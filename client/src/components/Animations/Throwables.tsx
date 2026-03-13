@@ -79,28 +79,37 @@ const ThrowableAnimation: React.FC<{
     );
   }
 
+  // Calculate horizontal and vertical deltas
+  const fromX = parseFloat(from.x);
+  const fromY = parseFloat(from.y);
+  const toX = parseFloat(to.x);
+  const toY = parseFloat(to.y);
+  const deltaX = toX - fromX;
+  const deltaY = toY - fromY;
+
   return (
     <div style={{
       position: 'absolute', zIndex: 100, pointerEvents: 'none',
       left: from.x, top: from.y,
       transform: 'translate(-50%, -50%)',
-      animation: `throwTo_${item.id} 0.6s cubic-bezier(0.2,0.8,0.3,1) forwards`,
     }}>
       <span style={{
         fontSize: 36,
         display: 'inline-block',
-        animation: 'spin 0.6s linear',
+        animation: `throwTo_${item.id} 0.6s cubic-bezier(0.25,0.46,0.45,0.94) forwards, spin 0.6s linear`,
         filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))',
       }}>
         {ITEM_EMOJI[item.type]}
       </span>
 
-      {/* Inject keyframes for this specific throw */}
+      {/* Inject keyframes for this specific throw with parabolic arc */}
       <style>{`
         @keyframes throwTo_${item.id} {
-          0% { left: ${from.x}; top: ${from.y}; opacity: 1; transform: translate(-50%,-50%) scale(0.5); }
-          50% { transform: translate(-50%,-80%) scale(1.2); }
-          100% { left: ${to.x}; top: ${to.y}; opacity: 1; transform: translate(-50%,-50%) scale(1); }
+          0% { transform: translate(-50%,-50%) scale(0.5); }
+          25% { transform: translate(calc(-50% + ${deltaX * 0.25}%), calc(-50% + ${deltaY * 0.25}% - 40px)) scale(0.9); }
+          50% { transform: translate(calc(-50% + ${deltaX * 0.5}%), calc(-50% + ${deltaY * 0.5}% - 60px)) scale(1.2); }
+          75% { transform: translate(calc(-50% + ${deltaX * 0.75}%), calc(-50% + ${deltaY * 0.75}% - 20px)) scale(1.1); }
+          100% { transform: translate(calc(-50% + ${deltaX}%), calc(-50% + ${deltaY}%)) scale(1); opacity: 1; }
         }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes splashPop {
