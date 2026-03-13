@@ -4,13 +4,10 @@ services:
     plan: standard
     env: node
     region: oregon
-    buildCommand: cd client && npm install && npm run build
-    startCommand: npm install -g serve && serve -s client/dist -l 3000
+    buildCommand: cd client && npm install && npm run build && cd ../server && npm install && npm run build
+    startCommand: node server/dist/index.js
     envVars:
       - key: NODE_ENV
         value: production
-    routes:
-      - path: /*
-        destination: /index.html
     domains:
       - poker-ultra.onrender.com
