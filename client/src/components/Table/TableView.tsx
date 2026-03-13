@@ -211,7 +211,7 @@ export const TableView: React.FC = () => {
         </div>
         <div style={{ width: 1, height: 20, background: GOLD_BORDER }} />
         <div style={{ fontSize: 12, color: TEXT_MUTED, display: 'flex', alignItems: 'center', gap: 5 }}>
-          PLAYERS <strong style={{ color: TEXT, fontWeight: 600, fontSize: 13 }}>{tableState.players.filter(Boolean).length}/{tableState.maxPlayers || 6}</strong>
+          PLAYERS <strong style={{ color: TEXT, fontWeight: 600, fontSize: 13 }}>{tableState.players.filter(Boolean).length}/{tableState.maxPlayers || tableState.players.length}</strong>
         </div>
 
         <div style={{ flex: 1 }} />
@@ -287,6 +287,40 @@ export const TableView: React.FC = () => {
             onThrowAt={(targetSeatIndex) => setThrowTarget(targetSeatIndex)}
           />
           <ThrowableLayer items={throwableItems} heroSeat={seatIndex} onRemove={removeThrowable} />
+
+          {/* ── Winning hand announcement overlay ── */}
+          {potWinners && potWinners.length > 0 && (
+            <div style={{
+              position: 'absolute', top: '12%', left: '50%', transform: 'translateX(-50%)',
+              zIndex: 55, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+              animation: 'winAnnounce 0.5s ease-out',
+            }}>
+              {potWinners.map((w, i) => (
+                <div key={i} style={{
+                  background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)',
+                  border: `2px solid ${GOLD}`, borderRadius: 16,
+                  padding: '12px 28px', boxShadow: `0 0 30px rgba(212,169,80,0.3), 0 8px 32px rgba(0,0,0,0.6)`,
+                  textAlign: 'center',
+                }}>
+                  <div style={{ fontSize: 11, color: TEXT_MUTED, fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1.5 }}>Winner</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: GOLD, fontFamily: "'Cinzel', serif" }}>
+                    {w.name || 'Player'} wins ₹{w.amount.toLocaleString()}
+                  </div>
+                  {w.hand && (
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#4ade80', marginTop: 4 }}>
+                      {w.hand}
+                    </div>
+                  )}
+                </div>
+              ))}
+              <style>{`
+                @keyframes winAnnounce {
+                  from { opacity: 0; transform: translateX(-50%) scale(0.8) translateY(20px); }
+                  to { opacity: 1; transform: translateX(-50%) scale(1) translateY(0); }
+                }
+              `}</style>
+            </div>
+          )}
 
           {/* Fullscreen hint */}
           <div style={{

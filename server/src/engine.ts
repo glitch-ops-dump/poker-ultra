@@ -20,6 +20,7 @@ export interface TableState {
   roomId: string;
   state: GameState;
   players: (PlayerState | null)[];
+  maxPlayers: number;
   deck: Card[];
   communityCards: Card[];
   pot: number;
@@ -35,13 +36,14 @@ export interface TableState {
 export class TexasHoldemEngine {
   state: TableState;
   private onStateChange?: () => void;
-  private onPotWin?: (winners: { seatIndex: number; amount: number }[]) => void;
+  private onPotWin?: (winners: { seatIndex: number; amount: number; name?: string; hand?: string }[]) => void;
 
   constructor(roomId: string, maxPlayers: number = 6) {
     this.state = {
       roomId,
       state: 'WAITING',
       players: new Array(maxPlayers).fill(null),
+      maxPlayers,
       deck: [],
       communityCards: [],
       pot: 0,
@@ -59,7 +61,7 @@ export class TexasHoldemEngine {
     this.onStateChange = cb;
   }
 
-  setOnWin(cb: (winners: { seatIndex: number; amount: number }[]) => void) {
+  setOnWin(cb: (winners: { seatIndex: number; amount: number; name?: string; hand?: string }[]) => void) {
     this.onPotWin = cb;
   }
 
@@ -227,7 +229,7 @@ export class TexasHoldemEngine {
       if (inHand.length === 1) {
         inHand[0].chips += this.state.pot;
         this.log(`${inHand[0].name} wins ₹${this.state.pot} (uncontested)`);
-        this.onPotWin?.([{ seatIndex: inHand[0].seatIndex, amount: this.state.pot }]);
+        this.onPotWin?.([{ seatIndex: inHand[0].seatIndex, amount: this.state.pot, name: inHand[0].name }]);
       }
       this.state.pot = 0;
       this.state.state = 'WAITING';
@@ -297,7 +299,7 @@ export class TexasHoldemEngine {
     const uniqueLevels = Array.from(new Set(allInvested)).sort((a, b) => a - b);
     
     let previousLevel = 0;
-    const winEvents: { seatIndex: number; amount: number }[] = [];
+    const winEvents: { seatIndex: number; amount: number; name?: string; hand?: string }[] = [];
     const payouts = new Map<string, number>();
 
     // 3. Distribute each slice
@@ -355,7 +357,7 @@ export class TexasHoldemEngine {
         const res = handScores.get(w.id);
         const handText = res ? ` with ${res.handProps.rankName}` : '';
         this.log(`🏆 ${w.name} wins ₹${amount}${handText}!`);
-        winEvents.push({ seatIndex: w.seatIndex, amount });
+        winEvents.push({ seatIndex: w.seatIndex, amount, name: w.name, hand: res?.handProps.rankName });
       }
     });
 

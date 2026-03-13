@@ -44,7 +44,7 @@ interface AppState {
   activeRooms: { id: string; name: string; players: number; maxPlayers: number; blinds: string; state: string }[];
   isSoundEnabled: boolean;
   isMusicEnabled: boolean;
-  potWinners: { seatIndex: number; amount: number }[] | null;
+  potWinners: { seatIndex: number; amount: number; name?: string; hand?: string }[] | null;
 
   setDisplayName: (name: string) => void;
   setBalance: (amt: number) => void;
@@ -72,7 +72,7 @@ export const useAppStore = create<AppState>((set, get) => {
   socket.on('connect', () => set({ isConnected: true }));
   socket.on('disconnect', () => set({ isConnected: false, tableState: null, roomCode: null }));
   
-  socket.on('sc_pot_win', (winners: { seatIndex: number; amount: number }[]) => {
+  socket.on('sc_pot_win', (winners: { seatIndex: number; amount: number; name?: string; hand?: string }[]) => {
     set({ potWinners: winners });
     setTimeout(() => {
       // Clear after animation finishes
